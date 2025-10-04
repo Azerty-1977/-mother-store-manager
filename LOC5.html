@@ -155,7 +155,7 @@
         <div id="transactions" class="tab-content hidden space-y-8">
             <h2 class="text-2xl font-semibold border-b pb-2 text-green-600">Enregistrement des Transactions</h2>
 
-            <!-- Filtres de Date et Recherche -->
+            <!-- Filtres de Date -->
             <div class="flex flex-wrap gap-4 items-center p-3 bg-gray-100 rounded-lg shadow-inner">
                 <label class="font-medium text-gray-700">Filtrer les transactions :</label>
                 <div>
@@ -165,11 +165,6 @@
                 <div>
                     <span class="text-sm text-gray-500">Fin :</span>
                     <input type="date" id="endDateInput" class="p-2 border rounded-md shadow-sm">
-                </div>
-                <!-- NOUVEAU: Champ de recherche par nom de produit -->
-                <div>
-                    <span class="text-sm text-gray-500">Rechercher :</span>
-                    <input type="text" id="searchTransactionInput" placeholder="Nom du produit" class="p-2 border rounded-md shadow-sm">
                 </div>
             </div>
 
@@ -228,15 +223,15 @@
             
             <p class="text-gray-700">Générez un rapport complet des transactions pour la période sélectionnée.</p>
 
-            <div class="flex gap-4">
-                <button id="exportReportBtn" class="px-6 py-3 bg-indigo-600 text-white font-bold rounded-lg hover:bg-indigo-700 transition duration-150 shadow-md flex items-center">
+            <div class="flex flex-col sm:flex-row gap-4">
+                <button id="exportReportBtn" class="px-6 py-3 bg-indigo-600 text-white font-bold rounded-lg hover:bg-indigo-700 transition duration-150 shadow-md flex items-center justify-center">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
                       <path fill-rule="evenodd" d="M3 17a1 1 0 100 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L10 11.586l1.293-1.293a1 1 0 111.414 1.414l-2 2a1 1 0 01-1.414 0l-2-2a1 1 0 010-1.414z" clip-rule="evenodd" />
                       <path fill-rule="evenodd" d="M10 2a1 1 0 011 1v7a1 1 0 11-2 0V3a1 1 0 011-1z" clip-rule="evenodd" />
                     </svg>
                     Exporter en CSV
                 </button>
-                <button id="shareReportBtn" class="px-6 py-3 bg-purple-600 text-white font-bold rounded-lg hover:bg-purple-700 transition duration-150 shadow-md flex items-center">
+                <button id="shareReportBtn" class="px-6 py-3 bg-purple-600 text-white font-bold rounded-lg hover:bg-purple-700 transition duration-150 shadow-md flex items-center justify-center">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
                       <path d="M15 8a3 3 0 10-2.977-2.977l-5.584 2.117a3.001 3.001 0 00-.898 3.346l5.584 2.117a3.001 3.001 0 10.975-2.117L8.68 9.395a3.001 3.001 0 00-.898-3.346l5.584-2.117A3 3 0 0015 8z" />
                     </svg>
@@ -293,8 +288,6 @@
         const unlockAdminBtn = document.getElementById('unlockAdminBtn');
         const adminContent = document.getElementById('adminContent');
 
-        // NOUVEAU: Élément pour la recherche dans les transactions
-        const searchTransactionInput = document.getElementById('searchTransactionInput');
 
         // Initialisation des dates de filtre (par défaut: les 7 derniers jours)
         const initialEndDate = today;
@@ -476,42 +469,7 @@
         }
 
         function renderTransactionList(filteredTransactions) {
-            // Appliquer le filtre de recherche si une valeur est saisie
-            const searchTerm = searchTransactionInput.value.trim().toLowerCase();
-            if (searchTerm) {
-                filteredTransactions = filteredTransactions.filter(t => {
-                    const drinkName = drinks.find(d => d.id === t.drinkId)?.name || 'Produit Supprimé';
-                    return drinkName.toLowerCase().includes(searchTerm);
-                });
-            }
-
-            // Afficher le nombre de transactions filtrées
-            const transactionCount = filteredTransactions.length;
-            const totalTransactions = [...sales, ...deliveries].length;
-            
-            transactionList.innerHTML = `
-                <div class="mb-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
-                    <p class="text-sm text-blue-700">
-                        Affichage de <strong>${transactionCount}</strong> transaction(s) sur ${totalTransactions} au total
-                        ${searchTerm ? ` (filtrées par "${searchTerm}")` : ''}
-                    </p>
-                </div>
-            `;
-
-            // Afficher les transactions filtrées
-            if (transactionCount === 0) {
-                transactionList.innerHTML += `
-                    <div class="text-center p-8 bg-gray-50 rounded-lg border border-gray-200">
-                        <p class="text-gray-500 text-lg">Aucune transaction trouvée</p>
-                        <p class="text-sm text-gray-400 mt-2">
-                            ${searchTerm ? 'Essayez de modifier vos critères de recherche ou de date' : 'Aucune transaction enregistrée pour cette période'}
-                        </p>
-                    </div>
-                `;
-                return;
-            }
-
-            transactionList.innerHTML += filteredTransactions.sort((a, b) => new Date(b.date) - new Date(a.date)).map(t => {
+            transactionList.innerHTML = filteredTransactions.sort((a, b) => new Date(b.date) - new Date(a.date)).map(t => {
                 const drinkName = drinks.find(d => d.id === t.drinkId)?.name || 'Produit Supprimé';
                 const type = t.supplierId ? 'Livraison' : 'Vente';
                 const bgColor = t.supplierId ? 'bg-blue-50 border-blue-200' : 'bg-green-50 border-green-200';
@@ -542,7 +500,7 @@
                         </div>
                     </div>
                 `;
-            }).join('');
+            }).join('') || '<p class="text-sm text-gray-500">Aucune transaction enregistrée pour cette période.</p>';
         }
 
         function renderDashboard(stats, filteredSales) {
@@ -873,12 +831,14 @@
                 return date >= start && date <= end;
             });
             
-            const stats = calculateStatistics(filteredSales, deliveries.filter(d => {
+            const filteredDeliveries = deliveries.filter(d => {
                  const date = new Date(d.date).getTime();
                  const start = new Date(startDate).getTime();
                  const end = new Date(endDate).getTime() + 86399999;
                  return date >= start && date <= end;
-            }));
+            });
+
+            const stats = calculateStatistics(filteredSales, filteredDeliveries);
 
             let reportText = `*** RAPPORT FINANCIER MOTHER STORE ***\n`;
             reportText += `Période: Du ${startDate} au ${endDate}\n\n`;
@@ -915,9 +875,18 @@
                 }).catch(error => console.error('Erreur de partage', error));
             } else {
                 // Fallback pour les navigateurs ne supportant pas navigator.share
-                navigator.clipboard.writeText(reportText).then(() => {
+                // Utilisation de document.execCommand('copy') pour la compatibilité dans l'iframe
+                const tempTextArea = document.createElement("textarea");
+                tempTextArea.value = reportText;
+                document.body.appendChild(tempTextArea);
+                tempTextArea.select();
+                try {
+                    document.execCommand('copy');
                     showMessage("Le rapport texte a été copié dans le presse-papiers.");
-                });
+                } catch (err) {
+                    showMessage("Erreur lors de la copie du rapport.", true);
+                }
+                document.body.removeChild(tempTextArea);
             }
         }
         
@@ -959,6 +928,12 @@
                 document.getElementById('passwordSection').classList.remove('hidden');
                 adminPasswordInput.value = '';
                 isAdminUnlocked = false;
+                
+                // Rétablir l'icône originale
+                adminLockBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd" />
+                </svg>`;
+                
                 renderAllLists(); // Important pour masquer les boutons de suppression de transaction
             }
         }
@@ -970,10 +945,10 @@
                 document.getElementById('passwordSection').classList.add('hidden');
                 showMessage('Accès administrateur déverrouillé !', false);
                 
-                // Mettre à jour l'icône
+                // Mettre à jour l'icône (cadenas ouvert)
                 adminLockBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-red-600" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M10 2a1 1 0 00-1 1v1h2V3a1 1 0 00-1-1zM5 6a2 2 0 012-2h6a2 2 0 012 2v3h2a2 2 0 012 2v5a2 2 0 01-2 2H3a2 2 0 01-2-2v-5a2 2 0 012-2h2V6zm2-2v2h6V4H7z" clip-rule="evenodd" />
                     <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9 9a1 1 0 012 0v2a1 1 0 11-2 0V9z" clip-rule="evenodd" />
-                    <path d="M7 6V5a3 3 0 116 0v1h1a2 2 0 012 2v7a2 2 0 01-2 2H6a2 2 0 01-2-2V8a2 2 0 012-2h1zm3-1a1 1 0 00-1 1v1h2V6a1 1 0 00-1-1z" clip-rule="evenodd" />
                 </svg>`;
                 
                 // Rendre à nouveau pour afficher les boutons de suppression de transaction
@@ -1032,14 +1007,14 @@
         startDateInput.addEventListener('change', renderAllLists);
         endDateInput.addEventListener('change', renderAllLists);
         
-        // NOUVEAU: Ajouter un écouteur d'événement pour le champ de recherche
-        searchTransactionInput.addEventListener('input', renderAllLists);
-        
         // Forcer le premier onglet à être actif
         switchTab('dashboard'); 
 
         // Initial render on page load
         document.addEventListener('DOMContentLoaded', renderAllLists);
+        
+        // --- 10. CORRECTION DE L'ERREUR SERVICE WORKER (RETRAIT) ---
+        // La tentative d'enregistrement du Service Worker a été supprimée du code.
     </script>
 </body>
 </html>
