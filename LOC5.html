@@ -1,0 +1,1049 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mother Store Manager</title>
+    <!-- MÉTADONNÉES PWA (Nouvelles Lignes) -->
+    <link rel="manifest" href="/manifest.json">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="application-name" content="Mother Store Manager">
+    <meta name="theme-color" content="#10b981">
+    <link rel="apple-touch-icon" href="/icon-192.png">
+    
+    <!-- Chargement de Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chargement de Chart.js pour les visualisations -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+    <style>
+        @import url('https://fonts.fonts.fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+            color: #1f2937;
+        }
+        .delete-btn {
+            font-size: 1.25rem; /* 20px */
+            line-height: 1;
+            transition: color 0.2s;
+        }
+        .tab-button.active {
+            border-color: #10b981; /* vert émeraude */
+            color: #10b981;
+            font-weight: 600;
+        }
+        /* Style pour les cartes principales */
+        .card {
+            background-color: white;
+            padding: 1.5rem;
+            border-radius: 0.75rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+        }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+    <div class="max-w-7xl mx-auto space-y-8">
+        <div class="text-center mb-6">
+            <p class="text-lg md:text-xl font-medium text-gray-500">Dépôt de boisson</p>
+            <h1 class="text-3xl md:text-4xl font-bold text-gray-800">Mother Store</h1>
+        </div>
+
+        <!-- Section des notifications -->
+        <div id="message-container" class="fixed bottom-4 right-4 z-50"></div>
+
+        <!-- Système d'onglets pour la navigation -->
+        <div class="flex flex-wrap justify-center space-x-2 md:space-x-4 border-b border-gray-200 mb-6">
+            <button id="tab-dashboard" class="tab-button active pb-2 px-3 text-sm md:text-base border-b-2 border-transparent hover:border-gray-400 transition duration-150 ease-in-out" data-target="section-dashboard">Tableau de Bord</button>
+            <button id="tab-visualisation" class="tab-button pb-2 px-3 text-sm md:text-base border-b-2 border-transparent hover:border-gray-400 transition duration-150 ease-in-out" data-target="section-visualisation">Visualisation</button>
+            <button id="tab-gestion" class="tab-button pb-2 px-3 text-sm md:text-base border-b-2 border-transparent hover:border-gray-400 transition duration-150 ease-in-out" data-target="section-gestion">Gestion & Stock</button>
+            <button id="tab-transactions" class="tab-button pb-2 px-3 text-sm md:text-base border-b-2 border-transparent hover:border-gray-400 transition duration-150 ease-in-out" data-target="section-transactions">Transactions</button>
+        </div>
+
+        <!-- 1. Section Tableau de Bord -->
+        <div id="section-dashboard" class="tab-content space-y-6">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <!-- Carte Stock -->
+                <div class="card bg-blue-50 border-l-4 border-blue-500">
+                    <h3 class="text-xl font-semibold text-blue-800 mb-2">Stock Total</h3>
+                    <p id="total-stock" class="text-3xl font-bold text-blue-900">0 Unités</p>
+                    <p class="text-sm text-blue-600 mt-1">Nombre d'articles en stock.</p>
+                </div>
+                <!-- Carte Bénéfice Net FC -->
+                <div class="card bg-green-50 border-l-4 border-green-500">
+                    <h3 class="text-xl font-semibold text-green-800 mb-2">Bénéfice Net (FC)</h3>
+                    <p id="net-profit-fc" class="text-3xl font-bold text-green-900">0 FC</p>
+                    <p class="text-sm text-green-600 mt-1">Profit après toutes les transactions.</p>
+                </div>
+                <!-- Carte Bénéfice Net USD -->
+                <div class="card bg-yellow-50 border-l-4 border-yellow-500">
+                    <h3 class="text-xl font-semibold text-yellow-800 mb-2">Bénéfice Net (USD)</h3>
+                    <p id="net-profit-usd" class="text-3xl font-bold text-yellow-900">0 USD</p>
+                    <p class="text-sm text-yellow-600 mt-1">Profit après conversion (2700 FC/$).</p>
+                </div>
+            </div>
+
+            <div class="card space-y-4">
+                <h2 class="text-2xl font-bold text-gray-800 border-b pb-2 mb-4">Actions Rapides</h2>
+                <div class="flex flex-wrap gap-4 justify-center md:justify-start">
+                    <button id="export-report-btn" class="px-4 py-2 bg-indigo-600 text-white font-medium rounded-lg hover:bg-indigo-700 transition duration-150 shadow-md">
+                        Exporter Rapport (.txt)
+                    </button>
+                    <button id="share-report-btn" class="px-4 py-2 bg-green-500 text-white font-medium rounded-lg hover:bg-green-600 transition duration-150 shadow-md">
+                        Partager Résumé (WhatsApp)
+                    </button>
+                    <button id="reset-data-btn" class="px-4 py-2 bg-red-500 text-white font-medium rounded-lg hover:bg-red-600 transition duration-150 shadow-md">
+                        Réinitialiser Toutes les Données
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 2. Section Visualisation (NOUVEAU) -->
+        <div id="section-visualisation" class="tab-content hidden space-y-6">
+            <h2 class="text-2xl font-bold text-gray-800">Graphiques de Performance</h2>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- Graphique Bénéfice Mensuel -->
+                <div class="card">
+                    <h3 class="text-xl font-semibold text-gray-700 mb-4">Bénéfice Net Mensuel (FC)</h3>
+                    <div class="h-80">
+                        <canvas id="monthly-profit-chart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Graphique Répartition des Ventes par Boisson -->
+                <div class="card">
+                    <h3 class="text-xl font-semibold text-gray-700 mb-4">Répartition des Ventes (Boissons)</h3>
+                    <div class="h-80 flex justify-center items-center">
+                        <canvas id="sales-by-drink-chart" class="max-h-full max-w-full"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 3. Section Gestion & Stock -->
+        <div id="section-gestion" class="tab-content hidden space-y-6">
+            <!-- Gestion des entités -->
+            <div class="card">
+                <h2 class="text-2xl font-bold text-gray-800 border-b pb-2 mb-4">Gestion des Entités</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Ajouter Fournisseur -->
+                    <div>
+                        <h3 class="text-xl font-semibold text-gray-700 mb-2">Fournisseurs</h3>
+                        <form id="add-supplier-form" class="flex space-x-2 mb-4">
+                            <input type="text" id="supplier-name" placeholder="Nom du fournisseur" required class="flex-grow p-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500">
+                            <button type="submit" class="px-4 py-2 bg-emerald-500 text-white font-medium rounded-lg hover:bg-emerald-600 transition duration-150">Ajouter</button>
+                        </form>
+                        <ul id="supplier-list" class="space-y-2 max-h-40 overflow-y-auto pr-2">
+                            <!-- Les fournisseurs seront ici -->
+                        </ul>
+                    </div>
+                    <!-- Ajouter Boisson -->
+                    <div>
+                        <h3 class="text-xl font-semibold text-gray-700 mb-2">Boissons</h3>
+                        <form id="add-drink-form" class="flex space-x-2 mb-4">
+                            <input type="text" id="drink-name" placeholder="Nom de la boisson" required class="flex-grow p-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500">
+                            <button type="submit" class="px-4 py-2 bg-emerald-500 text-white font-medium rounded-lg hover:bg-emerald-600 transition duration-150">Ajouter</button>
+                        </form>
+                        <ul id="drink-list" class="space-y-2 max-h-40 overflow-y-auto pr-2">
+                            <!-- Les boissons seront ici -->
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Stock Actuel -->
+            <div class="card">
+                <h2 class="text-2xl font-bold text-gray-800 border-b pb-2 mb-4">Stock Actuel</h2>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Boisson</th>
+                                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Quantité</th>
+                            </tr>
+                        </thead>
+                        <tbody id="inventory-list" class="bg-white divide-y divide-gray-200">
+                            <!-- Le stock sera affiché ici -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- 4. Section Transactions -->
+        <div id="section-transactions" class="tab-content hidden space-y-6">
+             <!-- Formulaires de transactions (Livraison et Vente) -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- Formulaire de Livraison -->
+                <div class="card bg-indigo-50 border-l-4 border-indigo-500">
+                    <h2 class="text-2xl font-bold text-indigo-800 mb-4">Enregistrer une Livraison (Achat)</h2>
+                    <form id="add-delivery-form" class="space-y-4">
+                        <input type="date" id="delivery-date" required class="w-full p-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500">
+                        <select id="delivery-supplier" required class="w-full p-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500">
+                            <option value="">Sélectionner Fournisseur</option>
+                        </select>
+                        <select id="delivery-drink" required class="w-full p-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500">
+                            <option value="">Sélectionner Boisson</option>
+                        </select>
+                        <input type="number" id="delivery-quantity" placeholder="Quantité (en unités)" required min="1" class="w-full p-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500">
+                        <input type="number" id="delivery-price" placeholder="Prix d'achat unitaire" required min="0" step="0.01" class="w-full p-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500">
+                        <select id="delivery-currency" required class="w-full p-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500">
+                            <option value="FC">FC (Franc Congolais)</option>
+                            <option value="USD">USD (Dollar US)</option>
+                        </select>
+                        <button type="submit" class="w-full py-2 bg-indigo-600 text-white font-medium rounded-lg hover:bg-indigo-700 transition duration-150">Enregistrer Livraison</button>
+                    </form>
+                </div>
+
+                <!-- Formulaire de Vente -->
+                <div class="card bg-pink-50 border-l-4 border-pink-500">
+                    <h2 class="text-2xl font-bold text-pink-800 mb-4">Enregistrer une Vente</h2>
+                    <form id="add-sale-form" class="space-y-4">
+                        <input type="date" id="sale-date" required class="w-full p-2 border border-gray-300 rounded-lg focus:ring-pink-500 focus:border-pink-500">
+                        <input type="text" id="sale-client-name" placeholder="Nom du client" required class="w-full p-2 border border-gray-300 rounded-lg focus:ring-pink-500 focus:border-pink-500">
+                        <select id="sale-client-category" required class="w-full p-2 border border-gray-300 rounded-lg focus:ring-pink-500 focus:border-pink-500">
+                            <option value="">Sélectionner Catégorie Client</option>
+                            <option value="Grossiste">Grossiste</option>
+                            <option value="Détaillant">Détaillant</option>
+                        </select>
+                        <select id="sale-drink" required class="w-full p-2 border border-gray-300 rounded-lg focus:ring-pink-500 focus:border-pink-500">
+                            <option value="">Sélectionner Boisson</option>
+                        </select>
+                        <input type="number" id="sale-quantity" placeholder="Quantité vendue" required min="1" class="w-full p-2 border border-gray-300 rounded-lg focus:ring-pink-500 focus:border-pink-500">
+                        <input type="number" id="sale-price" placeholder="Prix de vente unitaire" required min="0" step="0.01" class="w-full p-2 border border-gray-300 rounded-lg focus:ring-pink-500 focus:border-pink-500">
+                        <select id="sale-currency" required class="w-full p-2 border border-gray-300 rounded-lg focus:ring-pink-500 focus:border-pink-500">
+                            <option value="FC">FC (Franc Congolais)</option>
+                            <option value="USD">USD (Dollar US)</option>
+                        </select>
+                        <button type="submit" class="w-full py-2 bg-pink-600 text-white font-medium rounded-lg hover:bg-pink-700 transition duration-150">Enregistrer Vente</button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Historique des Transactions -->
+            <div class="card">
+                <h2 class="text-2xl font-bold text-gray-800 border-b pb-2 mb-4">Historique des Transactions</h2>
+                
+                <!-- Filtre par date -->
+                <div class="flex flex-wrap gap-4 items-center mb-4 p-4 bg-gray-50 rounded-lg border">
+                    <p class="font-medium text-gray-700">Filtrer par Date:</p>
+                    <label for="start-date" class="text-sm text-gray-600">Début:</label>
+                    <input type="date" id="start-date" class="p-2 border border-gray-300 rounded-lg">
+                    <label for="end-date" class="text-sm text-gray-600">Fin:</label>
+                    <input type="date" id="end-date" class="p-2 border border-gray-300 rounded-lg">
+                </div>
+
+                <!-- Onglets de l'historique -->
+                <div class="flex space-x-4 border-b border-gray-200 mb-4">
+                    <button id="history-tab-deliveries" class="history-tab active pb-2 px-3 border-b-2 border-emerald-500 text-emerald-600 font-medium transition duration-150">Livraisons</button>
+                    <button id="history-tab-sales" class="history-tab pb-2 px-3 border-b-2 border-transparent text-gray-500 hover:border-gray-400 transition duration-150">Ventes</button>
+                </div>
+
+                <!-- Contenu de l'historique (Livraisons) -->
+                <div id="history-content-deliveries" class="history-content overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fournisseur</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Boisson</th>
+                                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Quantité</th>
+                                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Coût Total</th>
+                                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="delivery-history" class="bg-white divide-y divide-gray-200">
+                            <!-- L'historique des livraisons sera affiché ici -->
+                        </tbody>
+                    </table>
+                </div>
+                
+                <!-- Contenu de l'historique (Ventes) -->
+                <div id="history-content-sales" class="history-content hidden overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Client (Catégorie)</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Boisson</th>
+                                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Quantité</th>
+                                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Revenu Total</th>
+                                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="sale-history" class="bg-white divide-y divide-gray-200">
+                            <!-- L'historique des ventes sera affiché ici -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Enregistrement du Service Worker pour le mode hors ligne (PWA)
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/service-worker.js').then(registration => {
+                    console.log('SW enregistré avec succès: ', registration.scope);
+                }).catch(err => {
+                    console.log('Échec de l\'enregistrement du SW: ', err);
+                });
+            });
+        }
+
+        // Taux de change (IMPORTANT)
+        const EXCHANGE_RATE = 2700; 
+
+        // Initialisation des données à partir de localStorage ou à vide
+        let suppliers = JSON.parse(localStorage.getItem('suppliers')) || [];
+        let drinks = JSON.parse(localStorage.getItem('drinks')) || [];
+        let deliveries = JSON.parse(localStorage.getItem('deliveries')) || [];
+        let sales = JSON.parse(localStorage.getItem('sales')) || [];
+        let inventory = JSON.parse(localStorage.getItem('inventory')) || {}; // { 'BoissonA': 100, 'BoissonB': 50 }
+
+        // Références aux éléments DOM
+        const supplierList = document.getElementById('supplier-list');
+        const drinkList = document.getElementById('drink-list');
+        const inventoryList = document.getElementById('inventory-list');
+        const deliveryHistory = document.getElementById('delivery-history');
+        const saleHistory = document.getElementById('sale-history');
+        const totalStockEl = document.getElementById('total-stock');
+        const netProfitFcEl = document.getElementById('net-profit-fc');
+        const netProfitUsdEl = document.getElementById('net-profit-usd');
+        const startDateInput = document.getElementById('start-date');
+        const endDateInput = document.getElementById('end-date');
+        const messageContainer = document.getElementById('message-container');
+        
+        // Variables pour les graphiques (instances)
+        let monthlyProfitChartInstance = null;
+        let salesByDrinkChartInstance = null;
+
+        /**
+         * Enregistre toutes les variables globales dans localStorage.
+         */
+        function saveData() {
+            localStorage.setItem('suppliers', JSON.stringify(suppliers));
+            localStorage.setItem('drinks', JSON.stringify(drinks));
+            localStorage.setItem('deliveries', JSON.stringify(deliveries));
+            localStorage.setItem('sales', JSON.stringify(sales));
+            localStorage.setItem('inventory', JSON.stringify(inventory));
+        }
+
+        /**
+         * Affiche un message de notification temporaire.
+         * @param {string} msg Le message à afficher.
+         * @param {boolean} isWarning Si le message est un avertissement (couleur rouge).
+         */
+        function showMessage(msg, isWarning = false) {
+            const el = document.createElement('div');
+            el.className = `p-4 mb-2 rounded-lg shadow-lg text-white font-medium transition duration-300 transform translate-y-0 opacity-100 ${isWarning ? 'bg-red-500' : 'bg-emerald-500'}`;
+            el.textContent = msg;
+            
+            messageContainer.appendChild(el);
+
+            // Masquer le message après 3 secondes
+            setTimeout(() => {
+                el.classList.add('opacity-0', 'translate-y-4');
+                el.addEventListener('transitionend', () => el.remove());
+            }, 3000);
+        }
+
+        // --- Fonctions utilitaires de conversion et de calcul ---
+
+        /**
+         * Convertit un montant dans sa valeur équivalente en FC (Franc Congolais).
+         * @param {number} amount Le montant.
+         * @param {string} currency La devise ('FC' ou 'USD').
+         * @returns {number} Le montant converti en FC.
+         */
+        function toFC(amount, currency) {
+            return currency === 'USD' ? amount * EXCHANGE_RATE : amount;
+        }
+        
+        /**
+         * Formate un nombre en devise.
+         * @param {number} amount Le montant.
+         * @param {string} currency La devise.
+         * @returns {string} Le montant formaté.
+         */
+        function formatCurrency(amount, currency) {
+            // Utiliser le code 'CDF' pour les Francs Congolais (standard ISO)
+            const currencyCode = currency === 'FC' ? 'CDF' : currency;
+
+            return new Intl.NumberFormat('fr-FR', {
+                style: 'currency',
+                currency: currencyCode,
+                minimumFractionDigits: 0
+            }).format(amount);
+        }
+
+        /**
+         * Calcule le bénéfice net total.
+         * @returns {{fc: number, usd: number}} Les bénéfices en FC et USD.
+         */
+        function calculateNetProfit() {
+            // Calculer les revenus totaux des ventes (convertis en FC)
+            let revenueFromSales = sales.reduce((sum, sale) => sum + toFC(sale.price * sale.quantity, sale.currency), 0);
+            // Calculer les coûts totaux des livraisons (convertis en FC)
+            let costOfDeliveries = deliveries.reduce((sum, delivery) => sum + toFC(delivery.price * delivery.quantity, delivery.currency), 0);
+
+            const netProfitFC = revenueFromSales - costOfDeliveries;
+            const netProfitUSD = netProfitFC / EXCHANGE_RATE;
+
+            return { fc: netProfitFC, usd: netProfitUSD };
+        }
+
+        // --- Fonctions de rendu (Affichage) ---
+
+        /**
+         * Met à jour les sélecteurs de fournisseurs et de boissons.
+         */
+        function updateSelectOptions() {
+            const deliverySupplierSelect = document.getElementById('delivery-supplier');
+            const deliveryDrinkSelect = document.getElementById('delivery-drink');
+            const saleDrinkSelect = document.getElementById('sale-drink');
+
+            // Mise à jour des fournisseurs
+            deliverySupplierSelect.innerHTML = '<option value="">Sélectionner Fournisseur</option>' + 
+                suppliers.map(s => `<option value="${s.name}">${s.name}</option>`).join('');
+
+            // Mise à jour des boissons (pour livraison et vente)
+            const drinkOptionsHTML = '<option value="">Sélectionner Boisson</option>' +
+                drinks.map(d => `<option value="${d.name}">${d.name}</option>`).join('');
+            
+            deliveryDrinkSelect.innerHTML = drinkOptionsHTML;
+            saleDrinkSelect.innerHTML = drinkOptionsHTML;
+        }
+
+        /**
+         * Met à jour l'affichage du stock actuel.
+         */
+        function renderInventory() {
+            inventoryList.innerHTML = '';
+            let totalStock = 0;
+            
+            // Créer une liste de boissons triées pour un affichage cohérent
+            const sortedDrinks = drinks.map(d => d.name).sort();
+
+            for (const name of sortedDrinks) {
+                const quantity = inventory[name] || 0;
+                totalStock += quantity;
+
+                const row = document.createElement('tr');
+                // Alerte pour faible stock (moins de 50 unités)
+                const isLowStock = quantity < 50 && quantity > 0;
+                const rowClass = isLowStock ? 'bg-yellow-100' : (quantity === 0 ? 'bg-red-100' : 'bg-white');
+                
+                row.className = rowClass;
+                row.innerHTML = `
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${name}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-right font-bold ${isLowStock ? 'text-yellow-700' : (quantity === 0 ? 'text-red-700' : 'text-gray-900')}">${quantity} ${quantity <= 1 ? 'unité' : 'unités'}</td>
+                `;
+                inventoryList.appendChild(row);
+            }
+            
+            // Afficher le stock total sans formatCurrency
+            totalStockEl.textContent = `${totalStock} Unités`; 
+        }
+
+        /**
+         * Affiche les listes de fournisseurs et de boissons avec boutons de suppression.
+         * @param {object[]} array Le tableau de données (suppliers ou drinks).
+         * @param {HTMLElement} listElement L'élément <ul> où afficher la liste.
+         * @param {string} type Le type de données ('supplier' ou 'drink').
+         */
+        function renderEntityList(array, listElement, type) {
+            listElement.innerHTML = '';
+            array.forEach((item, index) => {
+                const li = document.createElement('li');
+                li.className = 'flex justify-between items-center p-3 bg-gray-100 rounded-lg text-gray-800 shadow-sm';
+                li.innerHTML = `
+                    <span>${item.name}</span>
+                    <button class="delete-btn text-red-500 hover:text-red-700" data-index="${index}" data-type="${type}">&times;</button>
+                `;
+                listElement.appendChild(li);
+            });
+        }
+
+        /**
+         * Met à jour les totaux du tableau de bord.
+         */
+        function updateDashboardTotals() {
+            const { fc, usd } = calculateNetProfit();
+            netProfitFcEl.textContent = formatCurrency(fc, 'FC'); // Utiliser 'FC' qui sera traduit en 'CDF'
+            netProfitUsdEl.textContent = formatCurrency(usd, 'USD');
+        }
+        
+        /**
+         * Met à jour et affiche les graphiques de performance.
+         */
+        function renderCharts() {
+            // 1. Préparation des données pour les graphiques
+            const today = new Date();
+            const oneYearAgo = new Date(today.setFullYear(today.getFullYear() - 1));
+
+            // Filtrer les ventes pour le graphique (un an)
+            const recentSales = sales.filter(s => new Date(s.date) >= oneYearAgo);
+
+            // a. Bénéfice Net Mensuel
+            const monthlyProfitData = {}; // { 'YYYY-MM': profitFC }
+
+            for (const sale of recentSales) {
+                const monthKey = sale.date.substring(0, 0, 7); // YYYY-MM
+                // Profit = Revenu de la vente (en FC) - Coût de la vente (déjà en FC)
+                const profit = toFC(sale.price * sale.quantity, sale.currency) - sale.costFC; 
+                monthlyProfitData[monthKey] = (monthlyProfitData[monthKey] || 0) + profit;
+            }
+
+            // Créer les labels (les 12 derniers mois) et les données
+            const labels = [];
+            const data = [];
+            let current = new Date();
+            current.setMonth(current.getMonth() - 11); // Commence 11 mois avant le mois actuel
+
+            for (let i = 0; i < 12; i++) {
+                const monthKey = `${current.getFullYear()}-${String(current.getMonth() + 1).padStart(2, '0')}`;
+                labels.push(new Date(current).toLocaleString('fr-FR', { month: 'short', year: '2-digit' }));
+                data.push(monthlyProfitData[monthKey] || 0);
+                current.setMonth(current.getMonth() + 1);
+            }
+
+            // b. Répartition des Ventes par Boisson
+            const salesByDrinkData = {}; // { 'Boisson': totalRevenueFC }
+            for (const sale of recentSales) {
+                const revenue = toFC(sale.price * sale.quantity, sale.currency);
+                salesByDrinkData[sale.drink] = (salesByDrinkData[sale.drink] || 0) + revenue;
+            }
+            
+            const drinkLabels = Object.keys(salesByDrinkData);
+            const drinkData = Object.values(salesByDrinkData);
+            
+            // Générer des couleurs aléatoires
+            const backgroundColors = drinkLabels.map(() => `hsl(${Math.random() * 360}, 70%, 50%)`);
+
+
+            // 2. Création/Mise à jour des instances de Chart.js
+            
+            const ctxMonthly = document.getElementById('monthly-profit-chart').getContext('2d');
+            if (monthlyProfitChartInstance) {
+                monthlyProfitChartInstance.destroy();
+            }
+            monthlyProfitChartInstance = new Chart(ctxMonthly, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Bénéfice Net (FC)',
+                        data: data,
+                        backgroundColor: 'rgba(16, 185, 129, 0.8)', // Vert émeraude
+                        borderColor: 'rgba(16, 185, 129, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Bénéfice Net (FC)'
+                            },
+                            // Formatter l'axe Y pour les FC
+                            ticks: {
+                                callback: function(value) {
+                                    // Utiliser CDF ici pour le formatage
+                                    return formatCurrency(value, 'CDF').replace('CDF', 'FC'); 
+                                }
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: { display: false },
+                        title: { display: true, text: 'Performance des 12 derniers mois' }
+                    }
+                }
+            });
+
+            const ctxDrink = document.getElementById('sales-by-drink-chart').getContext('2d');
+            if (salesByDrinkChartInstance) {
+                salesByDrinkChartInstance.destroy();
+            }
+            salesByDrinkChartInstance = new Chart(ctxDrink, {
+                type: 'pie',
+                data: {
+                    labels: drinkLabels,
+                    datasets: [{
+                        data: drinkData,
+                        backgroundColor: backgroundColors,
+                        hoverOffset: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'right' },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const label = context.label || '';
+                                    const value = context.parsed;
+                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                    const percentage = ((value / total) * 100).toFixed(1) + '%';
+                                    // Utiliser CDF ici pour le formatage
+                                    return `${label}: ${formatCurrency(value, 'CDF')} (${percentage})`; 
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        /**
+         * Affiche l'historique des livraisons et des ventes, filtré par date.
+         */
+        function renderHistoryLists() {
+            const startDate = startDateInput.value ? new Date(startDateInput.value) : null;
+            const endDate = endDateInput.value ? new Date(endDateInput.value) : null;
+            
+            // Filtrer les livraisons
+            const filteredDeliveries = deliveries.filter(d => {
+                const dDate = new Date(d.date);
+                return (!startDate || dDate >= startDate) && (!endDate || dDate <= endDate);
+            }).sort((a, b) => new Date(b.date) - new Date(a.date)); // Tri du plus récent au plus ancien
+
+            // Filtrer les ventes
+            const filteredSales = sales.filter(s => {
+                const sDate = new Date(s.date);
+                return (!startDate || sDate >= startDate) && (!endDate || sDate <= endDate);
+            }).sort((a, b) => new Date(b.date) - new Date(a.date)); // Tri du plus récent au plus ancien
+
+            // Rendu des livraisons
+            deliveryHistory.innerHTML = filteredDeliveries.map((d, index) => `
+                <tr class="bg-white hover:bg-gray-50">
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${d.date}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${d.supplier}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${d.drink}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-700 font-medium">${d.quantity}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-right font-bold text-indigo-700">${formatCurrency(d.price * d.quantity, d.currency)}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        <button class="delete-transaction-btn text-red-500 hover:text-red-700" data-type="delivery" data-index="${index}" title="Supprimer">&times;</button>
+                    </td>
+                </tr>
+            `).join('');
+
+            // Rendu des ventes
+            saleHistory.innerHTML = filteredSales.map((s, index) => {
+                const revenue = s.price * s.quantity;
+                // Coût en FC est déjà stocké dans s.costFC
+                
+                return `
+                <tr class="bg-white hover:bg-gray-50">
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${s.date}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${s.clientName} (${s.clientCategory})</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${s.drink}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-700 font-medium">${s.quantity}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-right font-bold text-pink-700">${formatCurrency(revenue, s.currency)}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        <button class="delete-transaction-btn text-red-500 hover:text-red-700" data-type="sale" data-index="${index}" title="Supprimer">&times;</button>
+                    </td>
+                </tr>
+            `;}).join('');
+        }
+
+        /**
+         * Fonction principale pour mettre à jour tous les affichages.
+         */
+        function renderAllLists() {
+            updateSelectOptions();
+            renderEntityList(suppliers, supplierList, 'supplier');
+            renderEntityList(drinks, drinkList, 'drink');
+            renderInventory();
+            updateDashboardTotals();
+            renderHistoryLists();
+            
+            // On appelle renderCharts uniquement si l'onglet visualisation est actif
+            const visualisationTab = document.getElementById('section-visualisation');
+            if (!visualisationTab.classList.contains('hidden')) {
+                renderCharts();
+            }
+        }
+
+        // --- Fonctions de gestion de données (Ajout/Suppression) ---
+
+        /**
+         * Ajoute un fournisseur.
+         */
+        document.getElementById('add-supplier-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const name = document.getElementById('supplier-name').value.trim();
+            if (name && !suppliers.some(s => s.name === name)) {
+                suppliers.push({ name });
+                document.getElementById('supplier-name').value = '';
+                saveData();
+                renderAllLists();
+                showMessage(`Fournisseur '${name}' ajouté.`);
+            } else {
+                showMessage("Nom de fournisseur invalide ou déjà existant.", true);
+            }
+        });
+
+        /**
+         * Ajoute une boisson.
+         */
+        document.getElementById('add-drink-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const name = document.getElementById('drink-name').value.trim();
+            if (name && !drinks.some(d => d.name === name)) {
+                drinks.push({ name });
+                inventory[name] = inventory[name] || 0; // Initialise le stock à 0
+                document.getElementById('drink-name').value = '';
+                saveData();
+                renderAllLists();
+                showMessage(`Boisson '${name}' ajoutée.`);
+            } else {
+                showMessage("Nom de boisson invalide ou déjà existant.", true);
+            }
+        });
+
+        /**
+         * Gère la suppression d'un fournisseur ou d'une boisson.
+         */
+        document.addEventListener('click', (e) => {
+            if (e.target.classList.contains('delete-btn')) {
+                const index = parseInt(e.target.dataset.index);
+                const type = e.target.dataset.type;
+
+                if (type === 'supplier') {
+                    if (deliveries.some(d => d.supplier === suppliers[index].name)) {
+                        showMessage("Impossible de supprimer : ce fournisseur a des livraisons enregistrées.", true);
+                        return;
+                    }
+                    showMessage(`Fournisseur '${suppliers[index].name}' supprimé.`, false);
+                    suppliers.splice(index, 1);
+                } else if (type === 'drink') {
+                    const drinkName = drinks[index].name;
+                    if (deliveries.some(d => d.drink === drinkName) || sales.some(s => s.drink === drinkName)) {
+                        showMessage("Impossible de supprimer : cette boisson a des transactions enregistrées.", true);
+                        return;
+                    }
+                    if (inventory[drinkName] > 0) {
+                        showMessage("Impossible de supprimer : le stock n'est pas vide (stock = " + inventory[drinkName] + ").", true);
+                        return;
+                    }
+                    showMessage(`Boisson '${drinkName}' supprimée.`, false);
+                    delete inventory[drinkName];
+                    drinks.splice(index, 1);
+                }
+                
+                saveData();
+                renderAllLists();
+            }
+        });
+
+        /**
+         * Gère la suppression d'une transaction (Livraison ou Vente).
+         * Attention : La suppression d'une transaction doit annuler l'impact sur l'inventaire.
+         */
+        document.addEventListener('click', (e) => {
+            if (e.target.classList.contains('delete-transaction-btn')) {
+                const type = e.target.dataset.type;
+                const index = parseInt(e.target.dataset.index); // Index dans la liste FILTRÉE actuellement affichée
+
+                // Pour supprimer l'élément d'origine, on doit d'abord retrouver son index dans le tableau GLOBAL
+                const transactionContainer = type === 'delivery' ? deliveries : sales;
+                
+                // On utilise la liste filtrée pour identifier l'élément à supprimer
+                const startDate = startDateInput.value ? new Date(startDateInput.value) : null;
+                const endDate = endDateInput.value ? new Date(endDateInput.value) : null;
+                
+                const filteredList = (type === 'delivery' ? deliveries : sales).filter(t => {
+                    const tDate = new Date(t.date);
+                    return (!startDate || tDate >= startDate) && (!endDate || tDate <= endDate);
+                }).sort((a, b) => new Date(b.date) - new Date(a.date));
+
+                const itemToDelete = filteredList[index];
+                
+                // Trouver l'index dans le tableau global non filtré
+                const globalIndex = transactionContainer.findIndex(item => item === itemToDelete);
+
+                if (globalIndex === -1) return; // Sécurité
+
+                const item = transactionContainer[globalIndex];
+
+                if (type === 'delivery') {
+                    // Si c'est une livraison, réduire le stock
+                    inventory[item.drink] = (inventory[item.drink] || 0) - item.quantity;
+                    if (inventory[item.drink] < 0) inventory[item.drink] = 0; // Sécurité
+                    transactionContainer.splice(globalIndex, 1);
+                    showMessage(`Livraison du ${item.date} pour ${item.drink} annulée.`, false);
+                } else if (type === 'sale') {
+                    // Si c'est une vente, augmenter le stock
+                    inventory[item.drink] = (inventory[item.drink] || 0) + item.quantity;
+                    transactionContainer.splice(globalIndex, 1);
+                    showMessage(`Vente du ${item.date} pour ${item.drink} annulée.`, false);
+                }
+
+                saveData();
+                renderAllLists();
+            }
+        });
+
+        /**
+         * Enregistre une livraison.
+         */
+        document.getElementById('add-delivery-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const date = document.getElementById('delivery-date').value;
+            const supplier = document.getElementById('delivery-supplier').value;
+            const drink = document.getElementById('delivery-drink').value;
+            const quantity = parseInt(document.getElementById('delivery-quantity').value);
+            const price = parseFloat(document.getElementById('delivery-price').value);
+            const currency = document.getElementById('delivery-currency').value;
+
+            if (supplier && drink && quantity > 0 && price >= 0) {
+                const newDelivery = {
+                    date,
+                    supplier,
+                    drink,
+                    quantity,
+                    price,
+                    currency,
+                    id: Date.now() // Ajout d'un ID unique
+                };
+
+                deliveries.push(newDelivery);
+                inventory[drink] = (inventory[drink] || 0) + quantity; // Mise à jour du stock
+                
+                e.target.reset(); // Réinitialiser le formulaire
+                saveData();
+                renderAllLists();
+                showMessage(`Livraison de ${quantity} ${drink} enregistrée.`);
+            } else {
+                showMessage("Veuillez remplir tous les champs de livraison correctement.", true);
+            }
+        });
+
+        /**
+         * Enregistre une vente.
+         */
+        document.getElementById('add-sale-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const date = document.getElementById('sale-date').value;
+            const clientName = document.getElementById('sale-client-name').value.trim();
+            const clientCategory = document.getElementById('sale-client-category').value;
+            const drink = document.getElementById('sale-drink').value;
+            const quantity = parseInt(document.getElementById('sale-quantity').value);
+            const price = parseFloat(document.getElementById('sale-price').value);
+            const currency = document.getElementById('sale-currency').value;
+
+            const currentStock = inventory[drink] || 0;
+
+            if (currentStock < quantity) {
+                showMessage(`Stock insuffisant. Seulement ${currentStock} ${drink} disponibles.`, true);
+                return;
+            }
+
+            if (clientName && clientCategory && drink && quantity > 0 && price >= 0) {
+                // Trouver le coût d'achat unitaire (simplifié au prix du dernier achat)
+                const lastDelivery = deliveries.filter(d => d.drink === drink).sort((a, b) => new Date(b.date) - new Date(a.date))[0];
+                let costUnitFC = 0;
+                if (lastDelivery) {
+                    // Convertir le prix unitaire du dernier achat en FC
+                    costUnitFC = toFC(lastDelivery.price, lastDelivery.currency);
+                }
+
+                // Coût total de la vente en FC
+                const totalCostForSaleFC = costUnitFC * quantity;
+
+
+                const newSale = {
+                    date,
+                    clientName,
+                    clientCategory,
+                    drink,
+                    quantity,
+                    price,
+                    currency,
+                    costFC: totalCostForSaleFC, // Stocker le coût total en FC
+                    id: Date.now() // Ajout d'un ID unique
+                };
+
+                sales.push(newSale);
+                inventory[drink] -= quantity; // Mise à jour du stock
+                
+                e.target.reset(); // Réinitialiser le formulaire
+                saveData();
+                renderAllLists();
+                showMessage(`Vente de ${quantity} ${drink} à ${clientName} enregistrée.`);
+            } else {
+                showMessage("Veuillez remplir tous les champs de vente correctement.", true);
+            }
+        });
+
+        // --- Fonctions des actions rapides ---
+
+        /**
+         * Exporte le rapport financier complet dans un fichier texte.
+         */
+        function exportReport() {
+            const { fc, usd } = calculateNetProfit();
+            const date = new Date().toLocaleString('fr-FR');
+            
+            let reportContent = `Rapport Financier - Mother Store\n`;
+            reportContent += `==================================\n`;
+            reportContent += `Date d'export: ${date}\n`;
+            reportContent += `Taux de change (Fixe): 1 USD = ${EXCHANGE_RATE} FC\n\n`;
+
+            reportContent += `--- Bilan Global ---\n`;
+            reportContent += `Bénéfice Net Total: ${formatCurrency(fc, 'FC')}\n`; // Utilisation de 'FC'
+            reportContent += `Bénéfice Net Total (estimé): ${formatCurrency(usd, 'USD')}\n`;
+            reportContent += `Stock Total d'Unités: ${(Object.values(inventory).reduce((a, b) => a + b, 0))}\n\n`;
+
+            reportContent += `--- Stock Actuel ---\n`;
+            drinks.forEach(d => {
+                reportContent += `${d.name}: ${inventory[d.name] || 0} unités\n`;
+            });
+            reportContent += `\n`;
+
+            reportContent += `--- Historique des Livraisons (${deliveries.length}) ---\n`;
+            deliveries.forEach(d => {
+                reportContent += `${d.date} | Fournisseur: ${d.supplier} | Boisson: ${d.drink} | Qte: ${d.quantity} | Coût: ${formatCurrency(d.price * d.quantity, d.currency)}\n`;
+            });
+            reportContent += `\n`;
+
+            reportContent += `--- Historique des Ventes (${sales.length}) ---\n`;
+            sales.forEach(s => {
+                reportContent += `${s.date} | Client: ${s.clientName} (${s.clientCategory}) | Boisson: ${s.drink} | Qte: ${s.quantity} | Revenu: ${formatCurrency(s.price * s.quantity, s.currency)}\n`;
+            });
+            reportContent += `\nFin du Rapport.\n`;
+
+            // Création du fichier et téléchargement
+            const blob = new Blob([reportContent], { type: 'text/plain;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `Rapport_MotherStore_${date.replace(/[^a-zA-Z0-9]/g, '_')}.txt`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            showMessage("Rapport financier exporté avec succès.");
+        }
+
+        /**
+         * Partage un résumé du rapport via WhatsApp.
+         * NOTE: L'API Web Share est plus fiable si disponible, sinon on utilise la méthode URL.
+         */
+        function shareReport() {
+            const { fc, usd } = calculateNetProfit();
+            const date = new Date().toLocaleDateString('fr-FR');
+            
+            const message = `*Rapport Mother Store du ${date}*\n\n` +
+                            `📈 *Bénéfice Net :*\n` +
+                            `   - En FC : ${formatCurrency(fc, 'FC')}\n` + // Utilisation de 'FC'
+                            `   - En USD : ${formatCurrency(usd, 'USD')}\n\n` +
+                            `📦 *Stock Total :* ${Object.values(inventory).reduce((a, b) => a + b, 0)} unités.\n\n` +
+                            `_Taux : 1 USD = ${EXCHANGE_RATE} FC_`;
+
+            if (navigator.share) {
+                navigator.share({
+                    title: 'Rapport Mother Store',
+                    text: message,
+                }).catch(error => console.error('Erreur de partage:', error));
+            } else {
+                // Fallback pour les navigateurs ne supportant pas Web Share
+                const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
+                window.open(whatsappUrl, '_blank');
+            }
+        }
+
+        /**
+         * Réinitialise toutes les données (avec confirmation).
+         */
+        const resetDataBtn = document.getElementById('reset-data-btn');
+        function resetData() {
+            if (resetDataBtn.dataset.confirm === 'true') {
+                localStorage.clear();
+                suppliers = [];
+                drinks = [];
+                deliveries = [];
+                sales = [];
+                inventory = {};
+                renderAllLists();
+                resetDataBtn.textContent = 'Réinitialiser Toutes les Données';
+                delete resetDataBtn.dataset.confirm;
+                showMessage("Toutes les données ont été réinitialisées.");
+            } else {
+                resetDataBtn.dataset.confirm = 'true';
+                resetDataBtn.textContent = 'Confirmer la réinitialisation !';
+                showMessage("Cliquez à nouveau pour CONFIRMER la réinitialisation.", true);
+                setTimeout(() => {
+                    if (resetDataBtn.dataset.confirm) {
+                        resetDataBtn.textContent = 'Réinitialiser Toutes les Données';
+                        delete resetDataBtn.dataset.confirm;
+                    }
+                }, 5000); // Revert after 5 seconds
+            }
+        }
+        
+        // --- Gestion des Onglets et Initialisation ---
+        
+        // Gère le changement d'onglet principal
+        document.querySelectorAll('.tab-button').forEach(button => {
+            button.addEventListener('click', () => {
+                document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active', 'border-emerald-500', 'text-emerald-600'));
+                document.querySelectorAll('.tab-content').forEach(content => content.classList.add('hidden'));
+
+                button.classList.add('active', 'border-emerald-500', 'text-emerald-600');
+                document.getElementById(button.dataset.target).classList.remove('hidden');
+                
+                // Si on va à l'onglet Visualisation, on s'assure que les graphiques sont à jour
+                if (button.dataset.target === 'section-visualisation') {
+                    renderCharts();
+                }
+            });
+        });
+        
+        // Gère le changement d'onglet d'historique (Livraisons/Ventes)
+        document.querySelectorAll('.history-tab').forEach(button => {
+            button.addEventListener('click', () => {
+                document.querySelectorAll('.history-tab').forEach(btn => btn.classList.remove('active', 'border-emerald-500', 'text-emerald-600'));
+                document.querySelectorAll('.history-tab').forEach(btn => btn.classList.add('border-transparent', 'text-gray-500'));
+                document.querySelectorAll('.history-content').forEach(content => content.classList.add('hidden'));
+
+                button.classList.remove('border-transparent', 'text-gray-500');
+                button.classList.add('active', 'border-emerald-500', 'text-emerald-600');
+                
+                const targetId = button.id.includes('deliveries') ? 'history-content-deliveries' : 'history-content-sales';
+                document.getElementById(targetId).classList.remove('hidden');
+            });
+        });
+
+        // Add event listeners for quick actions
+        document.getElementById('export-report-btn').addEventListener('click', exportReport);
+        document.getElementById('share-report-btn').addEventListener('click', shareReport);
+        document.getElementById('reset-data-btn').addEventListener('click', resetData);
+
+        // Add event listeners to date inputs for filtering
+        startDateInput.addEventListener('change', renderAllLists);
+        endDateInput.addEventListener('change', renderAllLists);
+
+        // Initial render on page load
+        document.addEventListener('DOMContentLoaded', () => {
+             // Définir la date d'aujourd'hui par défaut pour les formulaires
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('delivery-date').value = today;
+            document.getElementById('sale-date').value = today;
+            renderAllLists();
+        });
+        
+    </script>
+</body>
+</html>
