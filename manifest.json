@@ -1,21 +1,21 @@
 {
-"name": "Mother Store Manager",
-"short_name": "Store Manager",
-"description": "Outil de gestion de stock et de transactions pour le Dépôt Mother Store.",
-"start_url": "/LOC5.html",
-"display": "standalone",
-"background_color": "#ffffff",
-"theme_color": "#10b981",
-"icons": [
-{
-"src": "icon-192.png",
-"sizes": "192x192",
-"type": "image/png"
-},
-{
-"src": "icon-512.png",
-"sizes": "512x512",
-"type": "image/png"
-}
-]
+    "name": "Mother Store Gestion de Stock",
+    "short_name": "Mother Store",
+    "description": "Outil de gestion de stock et de transactions pour le dépôt de boisson Mother Store.",
+    "start_url": "/LOC5.html",
+    "display": "standalone",
+    "background_color": "#f3f4f6",
+    "theme_color": "#10b981",
+    "icons": [
+        {
+            "src": "icons/icon-192x192.png",
+            "sizes": "192x192",
+            "type": "image/png"
+        },
+        {
+            "src": "icons/icon-512x512.png",
+            "sizes": "512x512",
+            "type": "image/png"
+        }
+    ]
 }
